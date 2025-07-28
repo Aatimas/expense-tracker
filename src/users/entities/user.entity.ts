@@ -20,7 +20,7 @@ export class UserEntity {
   @Column({ type: 'varchar', length: 255, unique: true }) //email
   email: string;
 
-  @Column({ type: 'varchar', length: 255 }) //password hashed
+  @Column({ type: 'varchar', length: 255, select:false }) //password hashed
   password: string;
 
   @CreateDateColumn({ type: 'timestamptz' }) //timestamp with timezones auto
@@ -32,6 +32,7 @@ export class UserEntity {
   @DeleteDateColumn({ type: 'timestamptz', nullable: true }) //for soft deletes
   deleted_at?: Date;
 
+  //password hashing before insert using bcrypt
   @BeforeInsert()
   async hashPassword() {
     this.password = await bcrypt.hash(this.password, 10);
