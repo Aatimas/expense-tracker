@@ -5,10 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  BeforeInsert,
 } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 
 @Entity('users')
-export class User {
+export class UserEntity {
   @PrimaryGeneratedColumn('uuid') //unique uuid
   id: number;
 
@@ -29,6 +31,13 @@ export class User {
 
   @DeleteDateColumn({ type: 'timestamptz', nullable: true }) //for soft deletes
   deleted_at?: Date;
+
+  @BeforeInsert()
+  async hashPassword() {
+    this.password = await bcrypt.hash(this.password, 10);
+  }
 }
+
+
 
 // relationships later

@@ -1,17 +1,22 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { Inject, Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      url: process.env.DATABASE_URL,
-      autoLoadEntities: true,
-      synchronize: true,
-      logging:true,
+    ConfigModule.forRoot(), //Loads environment variables from the .env file.
+    //Configures TypeORM asynchronously, pulling database settings from environment variables.
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        url: configService.get('DATABASE_URL'),
+        autoLoadEntities: true,
+        synchronize: configService.get('DB_SYNC') === 'true',
+        logging: true,
+      }),
+      inject: [ConfigService],
     }),
     UsersModule,
     // TypeOrmModule.forRoot({
