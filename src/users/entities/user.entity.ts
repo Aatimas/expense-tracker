@@ -6,13 +6,14 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   BeforeInsert,
+  BeforeUpdate,
 } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
 @Entity('users')
 export class UserEntity {
   @PrimaryGeneratedColumn('uuid') //unique uuid
-  id: number;
+  id: string;
 
   @Column({ type: 'varchar', length: 255 }) //user name
   name: string;
@@ -34,10 +35,15 @@ export class UserEntity {
 
   //password hashing before insert using bcrypt
   @BeforeInsert()
+  @BeforeUpdate()
   async hashPassword() {
-    this.password = await bcrypt.hash(this.password, 10);
+    if (this.password && !this.password.startsWith('$2b$')) {
+      const salt = await bcrypt.genSalt();
+      this.password = await bcrypt.hash(this.password, salt);
+    }
   }
 }
+
 
 
 

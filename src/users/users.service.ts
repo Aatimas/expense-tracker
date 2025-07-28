@@ -1,16 +1,22 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserEntity } from './entities/user.entity';
+import { UserResponseDto } from './dto/user-response.dtos';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(UserEntity) // Injects the User repository for database interactions.
     private usersRepository: Repository<UserEntity>, //instantiates the Repository from typeORM
-  ) {}
+  ) { }
 
   //Checks if the email already exists, creates a new user entity from the DTO, and saves it
   async createUser(createUserDto: CreateUserDto): Promise<UserEntity> {
@@ -26,19 +32,61 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { email } });
   }
 
-  findAll() {
-    return `This action returns all users`;
+  //finds and returns all users
+  async findAll(): Promise<UserResponseDto[]> {
+    const users = await this.usersRepository.find({ withDeleted: false });
+    return plainToInstance(UserResponseDto, users, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  //retrieve single user by id
+  async findOne(id: string) {
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      withDeleted: false,
+    });
+    if (!user) {
+      throw new NotFoundException(`User with id ${id} not found`);
+    }
+    return plainToInstance(UserResponseDto, user, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  //update user by id
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<UserEntity> {
+    const user = await this.findOne(id); // throws NotFoundException if not found
+   
+    //if name is changed
+    if (updateUserDto.name) {
+      user.name = updateUserDto.name;
+    }
+    // Check for email uniqueness (if email is being changed)
+    if (updateUserDto.email && updateUserDto.email !== user.email) {
+      const existingUser = await this.usersRepository.findOne({
+        where: { email: updateUserDto.email },
+      });
+      if (existingUser && existingUser.id !== id) {
+        throw new ConflictException('Email already exists');
+      }
+      user.email = updateUserDto.email;
+    }
+
+    // Only set password if provided
+    if (updateUserDto.password) {
+      user.password = updateUserDto.password; // hashed automatically via @BeforeUpdate
+    }
+
+    return this.usersRepository.save(user);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  //delete a user
+  async softDelete(id: string): Promise<void> {
+    const result = await this.usersRepository.softDelete(id);
+
+    if (result.affected === 0) {
+      throw new NotFoundException(`User with ID ${id} not found or already deleted`);
+    }
   }
 }

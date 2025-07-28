@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Req,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -19,10 +20,8 @@ export class UsersController {
 
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
-    const user = await this.usersService.createUser(createUserDto);
-    return plainToInstance(UserResponseDto,user, {
-      excludeExtraneousValues: true,
-    });
+    await this.usersService.createUser(createUserDto);
+    return 'user created successfully';
   }
 
   @Get()
@@ -32,16 +31,17 @@ export class UsersController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
+    return this.usersService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    await this.usersService.update(id, updateUserDto);
+    return 'user updated';
   }
-
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
+  async deleteUser(@Param('id') id: string): Promise<{ message: string }> {
+    await this.usersService.softDelete(id);
+    return { message: `User with ID ${id} has been soft deleted.` };
   }
 }
