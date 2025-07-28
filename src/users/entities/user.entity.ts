@@ -1,22 +1,32 @@
-import { Column, CreateDateColumn, DeleteDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
+} from 'typeorm';
 
-@Entity()
+@Entity('users')
 export class User {
-  @PrimaryGeneratedColumn("uuid")
-  id: number; // Auto-incremented primary key
+  @PrimaryGeneratedColumn('uuid')
+  id: number;
 
-  @Column({ unique: true })
-  email: string; // User's email (must be unique)
+  @Column({ type: 'varchar', length: 255 })
+  name: string;
 
-  @Column()
-  password: string; // Hashed password (never store plain text)
+  @Column({ type: 'varchar', length: 255, unique: true })
+  email: string;
 
-  @CreateDateColumn()
-  created_at: Date; // Auto-set when the user is created
+  @Column({ type: 'varchar', length: 255 })
+  password: string;
 
-  @UpdateDateColumn()
-  updated_at: Date; // Auto-updated whenever user is updated
+  @CreateDateColumn({ type: 'timestamptz' })
+  created_at: Date;
 
-  @DeleteDateColumn({ nullable: true })
-  deleted_at?: Date; // Soft-delete timestamp (null if not deleted)
+  @UpdateDateColumn({ type: 'timestamptz' })
+  updated_at: Date;
+
+  @DeleteDateColumn({ type: 'timestamptz', nullable: true })
+  deleted_at?: Date;
 }
