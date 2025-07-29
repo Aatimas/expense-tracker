@@ -12,11 +12,11 @@ import { UserResponseDto } from './dto/user-response.dtos';
 import { plainToInstance } from 'class-transformer';
 
 @Injectable()
-export class UsersService {
+export class UserService {
   constructor(
     @InjectRepository(UserEntity) // Injects the User repository for database interactions.
     private usersRepository: Repository<UserEntity>, //instantiates the Repository from typeORM
-  ) { }
+  ) {}
 
   //Checks if the email already exists, creates a new user entity from the DTO, and saves it
   async createUser(createUserDto: CreateUserDto): Promise<UserEntity> {
@@ -57,15 +57,16 @@ export class UsersService {
   //update user by id
   async update(id: string, updateUserDto: UpdateUserDto): Promise<UserEntity> {
     const user = await this.findOne(id); // throws NotFoundException if not found
-   
+
     //if name is changed
     if (updateUserDto.name) {
       user.name = updateUserDto.name;
     }
     // Check for email uniqueness (if email is being changed)
     if (updateUserDto.email && updateUserDto.email !== user.email) {
+      //check if email is given and if user is trying to change email
       const existingUser = await this.usersRepository.findOne({
-        where: { email: updateUserDto.email },
+        where: { email: updateUserDto.email }, //check if the given email already exists
       });
       if (existingUser && existingUser.id !== id) {
         throw new ConflictException('Email already exists');
@@ -86,7 +87,9 @@ export class UsersService {
     const result = await this.usersRepository.softDelete(id);
 
     if (result.affected === 0) {
-      throw new NotFoundException(`User with ID ${id} not found or already deleted`);
+      throw new NotFoundException(
+        `User with ID ${id} not found or already deleted`,
+      );
     }
   }
 }
