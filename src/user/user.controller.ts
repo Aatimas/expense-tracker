@@ -6,14 +6,25 @@ import {
   Patch,
   Param,
   Delete,
+  Request,
+  UseGuards,
+  InternalServerErrorException,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
   //create new user
+  @Get('profile')
+  @UseGuards(AuthGuard('jwt'))
+  getProfile(@Request() req) {
+    return req.user;
+  }
+
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
     await this.userService.createUser(createUserDto);
@@ -26,9 +37,10 @@ export class UserController {
   }
   //get user by uuid
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(id);
+  getUserById(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.userService.findById(id);
   }
+
   //update user by uuid
   @Patch(':id')
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {

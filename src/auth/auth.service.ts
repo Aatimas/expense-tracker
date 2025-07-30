@@ -15,12 +15,13 @@ export class AuthService {
     password: string,
   ): Promise<UserEntity | null> {
     const user = await this.userService.findUserByEmail(email);
-    if (!user) return null;
+
+    if (!user) return null; // 🛡️ Check for missing user first
 
     const isMatch = await compare(password, user.password);
     if (!isMatch) return null;
 
-    return user; // Or map to UserResponseDto
+    return user;
   }
 
   async login(user: UserEntity): Promise<{ access_token: string }> {

@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
+import { UnauthorizedException } from '@nestjs/common';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -19,7 +20,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    // This attaches data to `req.user`
+    // console.log('Decoded JWT payload:', payload);
+
+    if (!payload?.sub || !payload?.email) {
+      throw new UnauthorizedException('Invalid JWT payload');
+    }
+
     return { userId: payload.sub, email: payload.email };
   }
 }

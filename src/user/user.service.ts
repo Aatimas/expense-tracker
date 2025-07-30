@@ -12,6 +12,9 @@ import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto';
 
 @Injectable()
 export class UserService {
+  findById(id: string) {
+    throw new Error('Method not implemented.');
+  }
   constructor(
     @InjectRepository(UserEntity) // Injects the User repository for database interactions.
     private usersRepository: Repository<UserEntity>, //instantiates the Repository from typeORM

@@ -21,7 +21,7 @@ export class UserEntity {
   @Column({ type: 'varchar', length: 255, unique: true }) //email
   email: string;
 
-  @Column({ type: 'varchar', length: 255, select:false }) //password hashed
+  @Column({ type: 'varchar', length: 255}) //password hashed
   password: string;
 
   @CreateDateColumn({ type: 'timestamptz' }) //timestamp with timezones auto
