@@ -5,7 +5,7 @@ import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(), //Loads environment variables from the .env file.
+    ConfigModule.forRoot({ isGlobal: true }), //Loads environment variables from the .env file.
     //Configures TypeORM asynchronously, pulling database settings from environment variables.
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],

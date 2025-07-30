@@ -18,12 +18,12 @@ export class UserService {
   ) {}
 
   //Checks if the email already exists, creates a new user entity from the DTO, and saves it
-  async createUser(createUserDto: CreateUserDto): Promise<UserEntity> {
-    const existingUser = await this.findUserByEmail(createUserDto.email);
+  async createUser(dto: CreateUserDto): Promise<UserEntity> {
+    const existingUser = await this.findUserByEmail(dto.email);
     if (existingUser) {
       throw new ConflictException('Email already exists');
     }
-    const user = this.usersRepository.create(createUserDto);
+    const user = this.usersRepository.create(dto);
     return this.usersRepository.save(user);
   }
   //Retrieves a user by email
@@ -54,28 +54,28 @@ export class UserService {
   }
 
   //update user by id
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<UserEntity> {
+  async update(id: string, dto: UpdateUserDto): Promise<UserEntity> {
     const user = await this.findOne(id); // throws NotFoundException if not found
 
     //if name is changed
-    if (updateUserDto.name) {
-      user.name = updateUserDto.name;
+    if (dto.name) {
+      user.name = dto.name;
     }
     // Check for email uniqueness (if email is being changed)
-    if (updateUserDto.email && updateUserDto.email !== user.email) {
+    if (dto.email && dto.email !== user.email) {
       //check if email is given and if user is trying to change email
       const existingUser = await this.usersRepository.findOne({
-        where: { email: updateUserDto.email }, //check if the given email already exists
+        where: { email: dto.email }, //check if the given email already exists
       });
       if (existingUser && existingUser.id !== id) {
         throw new ConflictException('Email already exists');
       }
-      user.email = updateUserDto.email;
+      user.email = dto.email;
     }
 
     // Only set password if provided
-    if (updateUserDto.password) {
-      user.password = updateUserDto.password; // hashed automatically via @BeforeUpdate
+    if (dto.password) {
+      user.password = dto.password; // hashed automatically via @BeforeUpdate
     }
 
     return this.usersRepository.save(user);
