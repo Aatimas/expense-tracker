@@ -6,18 +6,17 @@ import {
   MinLength,
   IsNotEmpty,
   IsString,
-  MaxLength,
 } from 'class-validator';
 
 export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsOptional()
-  @IsEmail()
-  email?: string;
-
-  @IsOptional()
   @IsString()
   @IsNotEmpty()
   name?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
 
   @IsOptional()
   @IsString()

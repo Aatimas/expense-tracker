@@ -1,15 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { UserService } from 'src/user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { compare } from 'bcrypt';
+import { CreateUserDto } from 'src/user/dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
-  ) {}
+  ) { }
+  
+  //validate the user
   async validateUser(
     email: string,
     password: string,
@@ -24,6 +27,16 @@ export class AuthService {
     return user;
   }
 
+  //register a user
+  async register(dto:CreateUserDto) {
+        const existingUser = await this.userService.findUserByEmail(dto.email);
+        if (existingUser) {
+          throw new ConflictException('Email already exists');
+    }
+    return this.userService.createUser(dto);
+  }
+
+  //handles login and token generation
   async login(user: UserEntity): Promise<{ access_token: string }> {
     const payload = {
       sub: user.id,

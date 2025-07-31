@@ -5,60 +5,66 @@ import {
 } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { UserEntity } from './entities/user.entity';
 import { plainToInstance } from 'class-transformer';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto';
 
 @Injectable()
 export class UserService {
-  findById(id: string) {
-    throw new Error('Method not implemented.');
-  }
   constructor(
     @InjectRepository(UserEntity) // Injects the User repository for database interactions.
     private usersRepository: Repository<UserEntity>, //instantiates the Repository from typeORM
   ) {}
 
-  //Checks if the email already exists, creates a new user entity from the DTO, and saves it
+  //creates a user and saves to database
   async createUser(dto: CreateUserDto): Promise<UserEntity> {
-    const existingUser = await this.findUserByEmail(dto.email);
-    if (existingUser) {
-      throw new ConflictException('Email already exists');
-    }
     const user = this.usersRepository.create(dto);
     return this.usersRepository.save(user);
   }
+
   //Retrieves a user by email
   async findUserByEmail(email: string): Promise<UserEntity | null> {
-    return this.usersRepository.findOne({ where: { email } });
+    return this.usersRepository.findOne({
+      where: { email },
+      withDeleted: true,
+    });
   }
 
   //finds and returns all users
   async findAll(): Promise<UserResponseDto[]> {
-    const users = await this.usersRepository.find({ withDeleted: false });
+    const users = await this.usersRepository.find();
+    if (!users) {
+      throw new NotFoundException(`User not found`);
+    }
     return plainToInstance(UserResponseDto, users, {
       excludeExtraneousValues: true,
     });
   }
 
   //retrieve single user by id
-  async findOne(id: string) {
-    const user = await this.usersRepository.findOne({
-      where: { id },
-      withDeleted: false,
-    });
-    if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
+  async findById(id: string) {
+    try {
+      const user = await this.usersRepository.findOne({
+        where: { id },
+      });
+
+      if (!user) {
+        throw new NotFoundException(`User with id ${id} not found`);
+      }
+
+      return plainToInstance(UserResponseDto, user, {
+        excludeExtraneousValues: true,
+      });
+    } catch (err) {
+      console.error('Error in findOne:', err);
+      throw err;
     }
-    return plainToInstance(UserResponseDto, user, {
-      excludeExtraneousValues: true,
-    });
   }
 
   //update user by id
   async update(id: string, dto: UpdateUserDto): Promise<UserEntity> {
-    const user = await this.findOne(id); // throws NotFoundException if not found
+    const user = await this.findById(id); // throws NotFoundException if not found
 
     //if name is changed
     if (dto.name) {

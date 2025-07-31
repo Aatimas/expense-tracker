@@ -6,10 +6,10 @@ export class UserResponseDto {
   id: string;
 
   @Expose()
-  email: string;
+  name: string;
 
   @Expose()
-  name: string;
+  email: string;
 
   @Exclude()
   password: string;
