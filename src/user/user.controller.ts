@@ -12,7 +12,7 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto';
+import { UpdateUserDto } from './dto';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('users')
@@ -28,13 +28,14 @@ export class UserController {
   // get all users
   @Get()
   @UseGuards(AuthGuard('jwt'))
-  findAll() {
-    return this.userService.findAll();
+  findAll(@Request() req) {
+    return this.userService.findAll(req.user); //get only the authenticated user
   }
+
   //get user by uuid
   @Get(':id')
   @UseGuards(AuthGuard('jwt'))
-  getUserById(@Param('id', new ParseUUIDPipe()) id: string) {
+  findById(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.userService.findById(id);
   }
 
