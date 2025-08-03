@@ -1,18 +1,29 @@
 import {
   IsString,
-  IsNotEmpty,
-  Length,
+  IsEnum,
   IsOptional,
   IsBoolean,
+  Length,
+  Matches,
 } from 'class-validator';
+import { TransactionType } from '../entities/category.entity';
 
 export class CreateCategoryDto {
   @IsString()
-  @IsNotEmpty()
   @Length(1, 255)
   name: string;
 
-  @IsOptional()
+  @IsEnum(TransactionType)
+  type: TransactionType;
+
+  @IsString()
+  @Length(7, 7)
+  @Matches(/^#[0-9A-Fa-f]{6}$/, {
+    message: 'Color must be a valid hex code (e.g., #FF0000)',
+  })
+  color: string;
+
   @IsBoolean()
+  @IsOptional()
   is_default?: boolean;
 }

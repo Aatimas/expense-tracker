@@ -1,32 +1,39 @@
+import { User } from 'src/user/entities/user.entity';
 import {
   Entity,
-  Column,
   PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
-  ManyToOne,
-  JoinColumn,
 } from 'typeorm';
-import { UserEntity } from '../../user/entities/user.entity';
+
+export enum TransactionType {
+  INCOME = 'income',
+  EXPENSE = 'expense',
+  TRANSFER = 'transfer',
+}
 
 @Entity('categories')
 export class Category {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id: number;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'CASCADE' })
+  user?: User;
 
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
+  @Column({ type: 'enum', enum: TransactionType })
+  type: TransactionType;
+
+  @Column({ type: 'varchar', length: 7 })
+  color: string;
+
   @Column({ type: 'boolean', default: false })
   is_default: boolean;
-
-  @ManyToOne(() => UserEntity, { nullable: true })
-  @JoinColumn({ name: 'user_id' })
-  user?: UserEntity;
-
-  @Column({ type: 'uuid', nullable: true })
-  user_id?: string;
 
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
@@ -34,6 +41,6 @@ export class Category {
   @UpdateDateColumn({ type: 'timestamptz' })
   updated_at: Date;
 
-  @DeleteDateColumn({ type: 'timestamptz', nullable: true })
+  @DeleteDateColumn({ type: 'timestamptz' })
   deleted_at?: Date;
 }

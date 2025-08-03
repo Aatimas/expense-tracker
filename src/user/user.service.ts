@@ -6,7 +6,7 @@ import {
 
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
-import { UserEntity } from './entities/user.entity';
+import { User } from './entities/user.entity';
 import { plainToInstance } from 'class-transformer';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto';
 import * as bcrypt from 'bcrypt';
@@ -14,8 +14,8 @@ import * as bcrypt from 'bcrypt';
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepository(UserEntity) // Injects the User repository for database interactions.
-    private userRepository: Repository<UserEntity>, //instantiates the Repository from typeORM
+    @InjectRepository(User) // Injects the User repository for database interactions.
+    private userRepository: Repository<User>, //instantiates the Repository from typeORM
   ) {}
 
   // Hash password using bcrypt
@@ -25,7 +25,7 @@ export class UserService {
   }
 
   //Retrieves a user by email
-  async findUserByEmail(email: string): Promise<UserEntity | null> {
+  async findUserByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({
       where: { email },
       withDeleted: true,
@@ -33,7 +33,7 @@ export class UserService {
   }
 
   //Creates a user and saves to database
-  async createUser(createUserDto: CreateUserDto): Promise<UserEntity> {
+  async createUser(createUserDto: CreateUserDto): Promise<User> {
     try {
       const hashedPassword = await this.hashPassword(createUserDto.password);
       const user = this.userRepository.create({
@@ -56,7 +56,7 @@ export class UserService {
     userId: string;
     email: string;
   }): Promise<UserResponseDto[]> {
-    let users: UserEntity[];
+    let users: User[];
 
     if (user.email === 'admin@gmail.com') {
       // Admin gets all users
@@ -91,7 +91,7 @@ export class UserService {
   }
 
   //update user by id
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<UserEntity> {
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.userRepository.findOne({ where: { id } }); // throws NotFoundException if not found
 
     if (!user) {

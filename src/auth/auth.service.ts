@@ -1,5 +1,5 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { UserEntity } from 'src/user/entities/user.entity';
+import { User } from 'src/user/entities/user.entity';
 import { UserService } from 'src/user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { compare } from 'bcrypt';
@@ -10,13 +10,10 @@ export class AuthService {
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
-  ) { }
-  
+  ) {}
+
   //validate the user
-  async validateUser(
-    email: string,
-    password: string,
-  ): Promise<UserEntity | null> {
+  async validateUser(email: string, password: string): Promise<User | null> {
     const user = await this.userService.findUserByEmail(email);
 
     if (!user) return null; // 🛡️ Check for missing user first
@@ -28,19 +25,19 @@ export class AuthService {
   }
 
   //register a user
-  async register(dto:CreateUserDto) {
-        const existingUser = await this.userService.findUserByEmail(dto.email);
-        if (existingUser) {
-          throw new ConflictException('Email already exists');
+  async register(dto: CreateUserDto) {
+    const existingUser = await this.userService.findUserByEmail(dto.email);
+    if (existingUser) {
+      throw new ConflictException('Email already exists');
     }
     return this.userService.createUser(dto);
   }
 
   //handles login and token generation
-  async login(user: UserEntity): Promise<{ access_token: string }> {
+  async login(user: User): Promise<{ access_token: string }> {
     const payload = {
       sub: user.id,
-      name:user.name,
+      name: user.name,
       email: user.email,
     };
 
