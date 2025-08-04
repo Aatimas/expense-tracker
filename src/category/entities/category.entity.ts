@@ -1,4 +1,4 @@
-import { Exclude } from 'class-transformer';
+import { Exclude, Expose } from 'class-transformer';
 import { User } from 'src/user/entities/user.entity';
 import {
   Entity,
@@ -19,6 +19,7 @@ export enum TransactionType {
 @Entity('categories')
 export class Category {
   @PrimaryGeneratedColumn('uuid')
+  @Expose()
   id: string;
 
   @ManyToOne(() => User, { nullable: true, onDelete: 'CASCADE' })
@@ -26,21 +27,27 @@ export class Category {
   user?: User;
 
   @Column({ type: 'varchar', length: 255 })
+  @Expose()
   name: string;
 
   @Column({ type: 'enum', enum: TransactionType })
+  @Expose()
   type: TransactionType;
 
   @Column({ type: 'varchar', length: 7 })
+  @Expose()
   color: string;
 
   @Column({ type: 'boolean', default: false })
+  @Expose()
   is_default: boolean;
 
   @CreateDateColumn({ type: 'timestamptz' })
+  @Expose()
   created_at: Date;
 
   @UpdateDateColumn({ type: 'timestamptz' })
+  @Expose()
   updated_at: Date;
 
   @DeleteDateColumn({ type: 'timestamptz' })

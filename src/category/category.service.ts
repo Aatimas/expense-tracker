@@ -83,16 +83,6 @@ export class CategoryService implements OnModuleInit {
       const result = await this.categoryRepository.findOne({
         //checks if the category we saved still exists in db
         where: { id: savedCategory.id },
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          color: true,
-          is_default: true,
-          created_at: true,
-          updated_at: true,
-          deleted_at: true,
-        },
       });
       if (!result) {
         throw new NotFoundException(
@@ -123,16 +113,6 @@ export class CategoryService implements OnModuleInit {
       }
       return this.categoryRepository.find({
         where: [{ user: IsNull() }, { user: { id: user.userId } }],
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          color: true,
-          is_default: true,
-          created_at: true,
-          updated_at: true,
-          deleted_at: true,
-        },
       });
     } catch (error) {
       console.error('Error in CategoryService.findAll:', {
@@ -157,17 +137,6 @@ export class CategoryService implements OnModuleInit {
       }
       const category = await this.categoryRepository.findOne({
         where: { id },
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          color: true,
-          is_default: true,
-          created_at: true,
-          updated_at: true,
-          deleted_at: true,
-          user: { id: true },
-        },
         relations: ['user'],
       });
       if (!category) {
@@ -175,7 +144,7 @@ export class CategoryService implements OnModuleInit {
       }
       if (
         category.user &&
-        category.user.id !== user.userId    //only the user can access private categories
+        category.user.id !== user.userId //only the user can access private categories
       ) {
         throw new ForbiddenException(
           'You do not have permission to access this category',
@@ -194,7 +163,6 @@ export class CategoryService implements OnModuleInit {
       );
     }
   }
-
 
   //upadte a category by id
   async update(
@@ -231,16 +199,6 @@ export class CategoryService implements OnModuleInit {
       const savedCategory = await this.categoryRepository.save(category);
       const result = await this.categoryRepository.findOne({
         where: { id: savedCategory.id },
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          color: true,
-          is_default: true,
-          created_at: true,
-          updated_at: true,
-          deleted_at: true,
-        },
       });
       if (!result) {
         throw new NotFoundException(
@@ -261,7 +219,6 @@ export class CategoryService implements OnModuleInit {
       );
     }
   }
-
 
   //remove a category
   async remove(
@@ -290,7 +247,6 @@ export class CategoryService implements OnModuleInit {
       );
     }
   }
-
 
   //initialize default categories
   async initializeDefaultCategories(): Promise<void> {
