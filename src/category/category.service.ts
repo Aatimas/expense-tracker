@@ -5,6 +5,7 @@ import {
   ConflictException,
   InternalServerErrorException,
   BadRequestException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
@@ -14,7 +15,7 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { User } from '../user/entities/user.entity';
 
 @Injectable()
-export class CategoryService {
+export class CategoryService implements OnModuleInit {
   constructor(
     @InjectRepository(Category)
     private categoryRepository: Repository<Category>,
@@ -93,13 +94,14 @@ export class CategoryService {
           deleted_at: true,
         },
       });
-      if (!result) { 
+      if (!result) {
         throw new NotFoundException(
           `Category with ID ${savedCategory.id} not found after creation`,
         );
       }
-      return result;                      //returns result
-    } catch (error) {                    //other errors
+      return result; //returns result
+    } catch (error) {
+      //other errors
       console.error('Error in CategoryService.create:', {
         message: error.message,
         stack: error.stack,
@@ -111,6 +113,8 @@ export class CategoryService {
       );
     }
   }
+
+  //returns all categories
 
   async findAll(user: { userId: string; email: string }): Promise<Category[]> {
     try {
@@ -142,6 +146,7 @@ export class CategoryService {
     }
   }
 
+  //returns a single categoru by id
   async findOne(
     id: string,
     user: { userId: string; email: string },
@@ -170,8 +175,7 @@ export class CategoryService {
       }
       if (
         category.user &&
-        category.user.id !== user.userId &&
-        user.email !== 'admin@gmail.com'
+        category.user.id !== user.userId    //only the user can access private categories
       ) {
         throw new ForbiddenException(
           'You do not have permission to access this category',
@@ -191,6 +195,8 @@ export class CategoryService {
     }
   }
 
+
+  //upadte a category by id
   async update(
     id: string,
     updateCategoryDto: UpdateCategoryDto,
@@ -256,6 +262,8 @@ export class CategoryService {
     }
   }
 
+
+  //remove a category
   async remove(
     id: string,
     user: { userId: string; email: string },
@@ -283,6 +291,8 @@ export class CategoryService {
     }
   }
 
+
+  //initialize default categories
   async initializeDefaultCategories(): Promise<void> {
     try {
       const defaultCategories: Partial<Category>[] = [
@@ -340,5 +350,8 @@ export class CategoryService {
         `Failed to initialize default categories: ${error.message}`,
       );
     }
+  }
+  async onModuleInit() {
+    await this.initializeDefaultCategories();
   }
 }
