@@ -1,5 +1,6 @@
 import { Exclude, Expose } from 'class-transformer';
 import { Category } from 'src/category/entities/category.entity';
+import { Wallet } from 'src/wallet/entities/wallet.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -43,6 +44,10 @@ export class User {
   @OneToMany(() => Category, (category) => category.user)
   @Exclude()
   categories: Category[];
+
+  @OneToMany(() => Wallet, (wallet) => wallet.user)
+  @Exclude()
+  wallet: Wallet[];
 }
 
 

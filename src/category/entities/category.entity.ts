@@ -8,6 +8,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  Index,
 } from 'typeorm';
 
 export enum TransactionType {
@@ -15,7 +16,7 @@ export enum TransactionType {
   EXPENSE = 'expense',
   TRANSFER = 'transfer',
 }
-
+@Index('IDX_category_name_user_id', ['name', 'user'], { unique: true })
 @Entity('categories')
 export class Category {
   @PrimaryGeneratedColumn('uuid')
