@@ -1,3 +1,4 @@
+import { Exclude } from 'class-transformer';
 import { User } from 'src/user/entities/user.entity';
 import {
   Entity,
@@ -18,9 +19,10 @@ export enum TransactionType {
 @Entity('categories')
 export class Category {
   @PrimaryGeneratedColumn('uuid')
-  id: number;
+  id: string;
 
   @ManyToOne(() => User, { nullable: true, onDelete: 'CASCADE' })
+  @Exclude()
   user?: User;
 
   @Column({ type: 'varchar', length: 255 })

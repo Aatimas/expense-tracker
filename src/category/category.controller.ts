@@ -8,12 +8,12 @@ import {
   Delete,
   UseGuards,
   Request,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { ParseIntPipe } from '@nestjs/common';
 import { Category } from './entities/category.entity';
 
 @Controller('categories')
@@ -26,7 +26,6 @@ export class CategoryController {
     @Body() createCategoryDto: CreateCategoryDto,
     @Request() request,
   ): Promise<Category> {
-    console.log(request.user);
     return this.categoryService.create(createCategoryDto, request.user);
   }
 
@@ -37,7 +36,7 @@ export class CategoryController {
 
   @Get(':id')
   findOne(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @Request() request,
   ): Promise<Category> {
     return this.categoryService.findOne(id, request.user);
@@ -45,7 +44,7 @@ export class CategoryController {
 
   @Patch(':id')
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
     @Request() request,
   ): Promise<Category> {
@@ -54,9 +53,9 @@ export class CategoryController {
 
   @Delete(':id')
   remove(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @Request() request,
-  ): Promise<void> {
+  ): Promise<{ message: string }> {
     return this.categoryService.remove(id, request.user);
   }
 }

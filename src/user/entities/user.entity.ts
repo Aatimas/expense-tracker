@@ -41,6 +41,7 @@ export class User {
   deleted_at?: Date;
 
   @OneToMany(() => Category, (category) => category.user)
+  @Exclude()
   categories: Category[];
 }
 
