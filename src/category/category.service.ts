@@ -136,11 +136,12 @@ export class CategoryService {
         category.user &&
         category.user.id !== user.userId //only the user can access private categories
       ) {
-        throw new ForbiddenException(
-          'You do not have permission to access this category',
-        );
+        return category;
       }
-      return category;
+
+      throw new ForbiddenException(
+        'You do not have permission to access this category',
+      );
     } catch (error) {
       console.error('Error in CategoryService.findOne:', {
         message: error.message,
@@ -241,8 +242,7 @@ export class CategoryService {
     }
   }
 
-
-//seed default categories on registration
+  //seed default categories on registration
   async initializeDefaultCategoriesForUser(user: User): Promise<void> {
     try {
       const defaultCategories: Partial<Category>[] = [

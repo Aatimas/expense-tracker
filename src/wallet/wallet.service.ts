@@ -1,19 +1,152 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateWalletDto } from './dto/create-wallet.dto';
 import { UpdateWalletDto } from './dto/update-wallet.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { User } from 'src/user/entities/user.entity';
+import { Repository } from 'typeorm';
+import { Wallet } from './entities/wallet.entity';
+import { CurrentUserPayload } from 'src/common/interface/current-user.interface';
 
 @Injectable()
 export class WalletService {
-  create(createWalletDto: CreateWalletDto) {
-    return 'This action adds a new wallet';
+  constructor(
+    @InjectRepository(Wallet)
+    private walletRepository: Repository<Wallet>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+  ) {}
+
+  private async isWalletNameTaken(
+    name: string,
+    userId: string,
+    excludeId?: string,
+  ): Promise<boolean> {
+    const existing = await this.walletRepository.findOne({
+      where: { name, user: { id: userId } },
+    });
+
+    return !!existing && existing.id !== excludeId;
+  }
+  async create(
+    createWalletDto: CreateWalletDto,
+    user: CurrentUserPayload, //get user from payload
+  ): Promise<Wallet> {
+    try {
+      const { name } = createWalletDto; //destructure wallet fields from the dto
+
+      // Check if wallet with that name exists, including soft-deleted
+      const existingWallet = await this.walletRepository.findOne({
+        where: {
+          name,
+          user: { id: user.userId },
+        },
+        withDeleted: true,
+        relations: ['user'],
+      });
+      // Case 1: Already exists and is active
+      if (existingWallet && !existingWallet.deleted_at) {
+        throw new ConflictException(
+          'Wallet name already exists for this scope',
+        );
+      }
+
+      // Case 2: Soft-deleted — restore it
+      if (existingWallet && existingWallet.deleted_at) {
+        await this.walletRepository.recover(existingWallet);
+
+        // Optionally update other fields (like icon, type) if provided in DTO
+        Object.assign(existingWallet, createWalletDto);
+        const restored = await this.walletRepository.save(existingWallet);
+        return restored;
+      }
+
+      //case-3 new wallet
+      const foundUser = await this.userRepository.findOne({
+        where: { id: user.userId },
+        select: { id: true }, //only get id field.
+      });
+
+      //in case user does not exist
+      if (!foundUser) {
+        throw new NotFoundException('User not found');
+      }
+
+      //create a wallet with select fields and user is walletUser
+      const wallet = this.walletRepository.create({
+        ...createWalletDto,
+        user: foundUser, //assign the found user data to wallet, userId in this case.
+      });
+
+      const savedWallet = await this.walletRepository.save(wallet); //saves data to database
+
+      return savedWallet; //returns the saved data
+    } catch (error) {
+      //other errors
+      console.error('Error in WalletService.create:', {
+        message: error.message,
+        stack: error.stack,
+        user,
+        createWalletDto,
+      });
+      throw new InternalServerErrorException(
+        `Failed to create Wallet: ${error.message}`,
+      );
+    }
   }
 
-  findAll() {
-    return `This action returns all wallet`;
+  //returns all categories
+
+  async findAll(user: CurrentUserPayload): Promise<Wallet[]> {
+    try {
+      return this.walletRepository.find({
+        where: [{ user: { id: user.userId } }],
+      });
+    } catch (error) {
+      console.error('Error in WalletService.findAll:', {
+        message: error.message,
+        stack: error.stack,
+        user,
+      });
+      throw new InternalServerErrorException(
+        `Failed to fetch categories: ${error.message}`,
+      );
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} wallet`;
+  async findOne(id: string, user: CurrentUserPayload): Promise<Wallet> {
+    try {
+      const wallet = await this.walletRepository.findOne({
+        where: { id },
+        relations: ['user'],
+      });
+      if (!wallet) {
+        throw new NotFoundException(`Wallet with ID ${id} not found`);
+      }
+      if (wallet.user && wallet.user.id !== user.userId) {
+        throw new ForbiddenException(
+          'You do not have permission to access this wallet',
+        );
+      }
+      return wallet;
+
+     
+    } catch (error) {
+      console.error('Error in WalletService.findOne:', {
+        message: error.message,
+        stack: error.stack,
+        id,
+        user,
+      });
+      throw new InternalServerErrorException(
+        `Failed to fetch wallet: ${error.message}`,
+      );
+    }
   }
 
   update(id: number, updateWalletDto: UpdateWalletDto) {
