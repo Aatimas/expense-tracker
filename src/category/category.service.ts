@@ -13,6 +13,7 @@ import { Category, TransactionType } from './entities/category.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { User } from '../user/entities/user.entity';
+import { CurrentUserPayload } from 'src/common/interface/current-user.interface';
 
 @Injectable()
 export class CategoryService {
@@ -23,78 +24,71 @@ export class CategoryService {
     private userRepository: Repository<User>,
   ) {}
 
+  private async isCategoryNameTaken(
+    name: string,
+    userId: string,
+    excludeId?: string,
+  ): Promise<boolean> {
+    const existing = await this.categoryRepository.findOne({
+      where: { name, user: { id: userId } },
+    });
+
+    return !!existing && existing.id !== excludeId;
+  }
   // create a new category
   async create(
     createCategoryDto: CreateCategoryDto,
-    user: { userId: string; email: string },
+    user: CurrentUserPayload, //get user from payload
   ): Promise<Category> {
     try {
-      if (!user?.userId || !user?.email) {
-        //check if the user and email field are provided or not checks for null or undefined
-        throw new BadRequestException('Invalid user data');
-      }
+      const { name } = createCategoryDto; //destructure category fields from the dto
 
-      const { name, type, color, is_default = false } = createCategoryDto; //destructure category fields from the dto
-
-      // if (is_default && user.email !== 'admin@gmail.com') {
-      //   //checks if the category is default and user is admin
-      //   throw new ForbiddenException(
-      //     'Only admins can create default categories',
-      //   );
-      // }
-
-      // const existingCategory = await this.categoryRepository.findOne({
-      //   //checks if the category with same name already exists
-      //   where: is_default
-      //     ? { name, user: IsNull() } // checks for default
-      //     : { name, user: { id: user.userId } }, // checks for user, user id is get from token
-      //   select: { id: true, name: true },
-      // });
-
+      // Check if category with that name exists, including soft-deleted
       const existingCategory = await this.categoryRepository.findOne({
-        where: { name, user: { id: user.userId } },
+        where: {
+          name,
+          user: { id: user.userId },
+        },
+        withDeleted: true,
+        relations: ['user'],
       });
-
-      if (existingCategory) {
+      // Case 1: Already exists and is active
+      if (existingCategory && !existingCategory.deleted_at) {
         throw new ConflictException(
           'Category name already exists for this scope',
         );
       }
 
-      let categoryUser: User | undefined; //variable to hold an instance of user or undefined
-      // if (!is_default) {
-      //   // check for default
-      //find user in database to associate with category
+      // Case 2: Soft-deleted — restore it
+      if (existingCategory && existingCategory.deleted_at) {
+        await this.categoryRepository.recover(existingCategory);
+
+        // Optionally update other fields (like icon, type) if provided in DTO
+        Object.assign(existingCategory, createCategoryDto);
+        const restored = await this.categoryRepository.save(existingCategory);
+        return restored;
+      }
+
+      //case-3 new category
       const foundUser = await this.userRepository.findOne({
         where: { id: user.userId },
-        select: { id: true },
+        select: { id: true }, //only get id field.
       });
 
       //in case user does not exist
       if (!foundUser) {
         throw new NotFoundException('User not found');
       }
-      // categoryUser = foundUser; //assign the found user data to categoryUser userId in this case.
 
       //create a category with select fields and user is categoryUser
       const category = this.categoryRepository.create({
         ...createCategoryDto,
-        user: foundUser,
+        user: foundUser, //assign the found user data to category, userId in this case.
       });
 
-      //saves data to database
-      const savedCategory = await this.categoryRepository.save(category);
+      const savedCategory = await this.categoryRepository.save(category); //saves data to database
 
-      //checks if the category we saved still exists in db
-      const result = await this.categoryRepository.findOne({
-        where: { id: savedCategory.id },
-      });
-      if (!result) {
-        throw new NotFoundException(
-          `Category with ID ${savedCategory.id} not found after creation`,
-        );
-      }
-      return result; //returns result
+      return savedCategory; //returns the saved data
     } catch (error) {
       //other errors
       console.error('Error in CategoryService.create:', {
@@ -111,209 +105,205 @@ export class CategoryService {
 
   //returns all categories
 
-  // async findAll(user: { userId: string; email: string }): Promise<Category[]> {
-  //   try {
-  //     if (!user?.userId || !user?.email) {
-  //       throw new BadRequestException('Invalid user data');
-  //     }
-  //     return this.categoryRepository.find({
-  //       where: [{ user: IsNull() }, { user: { id: user.userId } }],
-  //     });
-  //   } catch (error) {
-  //     console.error('Error in CategoryService.findAll:', {
-  //       message: error.message,
-  //       stack: error.stack,
-  //       user,
-  //     });
-  //     throw new InternalServerErrorException(
-  //       `Failed to fetch categories: ${error.message}`,
-  //     );
-  //   }
-  // }
+  async findAll(user: CurrentUserPayload): Promise<Category[]> {
+    try {
+      return this.categoryRepository.find({
+        where: [{ user: { id: user.userId } }],
+      });
+    } catch (error) {
+      console.error('Error in CategoryService.findAll:', {
+        message: error.message,
+        stack: error.stack,
+        user,
+      });
+      throw new InternalServerErrorException(
+        `Failed to fetch categories: ${error.message}`,
+      );
+    }
+  }
 
-  // //returns a single categoru by id
-  // async findOne(
-  //   id: string,
-  //   user: { userId: string; email: string },
-  // ): Promise<Category> {
-  //   try {
-  //     if (!user?.userId || !user?.email) {
-  //       throw new BadRequestException('Invalid user data');
-  //     }
-  //     const category = await this.categoryRepository.findOne({
-  //       where: { id },
-  //       relations: ['user'],
-  //     });
-  //     if (!category) {
-  //       throw new NotFoundException(`Category with ID ${id} not found`);
-  //     }
-  //     if (
-  //       category.user &&
-  //       category.user.id !== user.userId //only the user can access private categories
-  //     ) {
-  //       throw new ForbiddenException(
-  //         'You do not have permission to access this category',
-  //       );
-  //     }
-  //     return category;
-  //   } catch (error) {
-  //     console.error('Error in CategoryService.findOne:', {
-  //       message: error.message,
-  //       stack: error.stack,
-  //       id,
-  //       user,
-  //     });
-  //     throw new InternalServerErrorException(
-  //       `Failed to fetch category: ${error.message}`,
-  //     );
-  //   }
-  // }
+  //returns a single categoru by id
+  async findOne(id: string, user: CurrentUserPayload): Promise<Category> {
+    try {
+      const category = await this.categoryRepository.findOne({
+        where: { id },
+        relations: ['user'],
+      });
+      if (!category) {
+        throw new NotFoundException(`Category with ID ${id} not found`);
+      }
+      if (
+        category.user &&
+        category.user.id !== user.userId //only the user can access private categories
+      ) {
+        throw new ForbiddenException(
+          'You do not have permission to access this category',
+        );
+      }
+      return category;
+    } catch (error) {
+      console.error('Error in CategoryService.findOne:', {
+        message: error.message,
+        stack: error.stack,
+        id,
+        user,
+      });
+      throw new InternalServerErrorException(
+        `Failed to fetch category: ${error.message}`,
+      );
+    }
+  }
 
-  // //upadte a category by id
-  // async update(
-  //   id: string,
-  //   updateCategoryDto: UpdateCategoryDto,
-  //   user: { userId: string; email: string },
-  // ): Promise<Category> {
-  //   try {
-  //     if (!user?.userId || !user?.email) {
-  //       throw new BadRequestException('Invalid user data');
-  //     }
-  //     const category = await this.findOne(id, user);
-  //     if (category.is_default && user.email !== 'admin@gmail.com') {
-  //       throw new ForbiddenException(
-  //         'Default categories can only be modified by admins',
-  //       );
-  //     }
+  //upadte a category by id
+  async update(
+    id: string,
+    updateCategoryDto: UpdateCategoryDto,
+    user: CurrentUserPayload,
+  ): Promise<Category> {
+    try {
+      const category = await this.findOne(id, user); // Get existing category
 
-  //     if (updateCategoryDto.name && updateCategoryDto.name !== category.name) {
-  //       const existing = await this.categoryRepository.findOne({
-  //         where: category.is_default
-  //           ? { name: updateCategoryDto.name, user: IsNull() }
-  //           : { name: updateCategoryDto.name, user: { id: user.userId } },
-  //         select: { id: true, name: true },
-  //       });
-  //       if (existing && existing.id !== id) {
-  //         throw new ConflictException(
-  //           'Category name already exists for this scope',
-  //         );
-  //       }
-  //     }
+      if (updateCategoryDto.name && updateCategoryDto.name !== category.name) {
+        // Check if a category (active or deleted) with the new name exists
+        const existingWithDeleted = await this.categoryRepository.findOne({
+          where: {
+            name: updateCategoryDto.name,
+            user: { id: user.userId },
+          },
+          withDeleted: true, // includes soft-deleted records
+        });
 
-  //     Object.assign(category, updateCategoryDto);
-  //     const savedCategory = await this.categoryRepository.save(category);
-  //     const result = await this.categoryRepository.findOne({
-  //       where: { id: savedCategory.id },
-  //     });
-  //     if (!result) {
-  //       throw new NotFoundException(
-  //         `Category with ID ${savedCategory.id} not found after update`,
-  //       );
-  //     }
-  //     return result;
-  //   } catch (error) {
-  //     console.error('Error in CategoryService.update:', {
-  //       message: error.message,
-  //       stack: error.stack,
-  //       id,
-  //       user,
-  //       updateCategoryDto,
-  //     });
-  //     throw new InternalServerErrorException(
-  //       `Failed to update category: ${error.message}`,
-  //     );
-  //   }
-  // }
+        if (existingWithDeleted) {
+          if (!existingWithDeleted.deleted_at) {
+            // Active category with the same name already exists
+            throw new ConflictException(
+              'Category name already exists for this scope',
+            );
+          } else if (existingWithDeleted.id !== id) {
+            // Soft-deleted category with the same name exists — restore it or error
+            await this.categoryRepository.recover(existingWithDeleted);
+            return existingWithDeleted;
+          }
+        }
+      }
 
-  // //remove a category
-  // async remove(
-  //   id: string,
-  //   user: { userId: string; email: string },
-  // ): Promise<{ message: string }> {
-  //   try {
-  //     if (!user?.userId || !user?.email) {
-  //       throw new BadRequestException('Invalid user data');
-  //     }
-  //     const category = await this.findOne(id, user);
-  //     if (category.is_default) {
-  //       throw new ForbiddenException('Default categories cannot be deleted');
-  //     }
-  //     await this.categoryRepository.softDelete(id);
-  //     return { message: 'Category deleted successfully' };
-  //   } catch (error) {
-  //     console.error('Error in CategoryService.remove:', {
-  //       message: error.message,
-  //       stack: error.stack,
-  //       id,
-  //       user,
-  //     });
-  //     throw new InternalServerErrorException(
-  //       `Failed to delete category: ${error.message}`,
-  //     );
-  //   }
-  // }
+      Object.assign(category, updateCategoryDto);
+      const savedCategory = await this.categoryRepository.save(category);
 
-  //initialize default categories
-  // async initializeDefaultCategories(): Promise<void> {
-  //   try {
-  //     const defaultCategories: Partial<Category>[] = [
-  //       {
-  //         name: 'Food',
-  //         type: TransactionType.EXPENSE,
-  //         color: '#FF0000',
-  //         is_default: true,
-  //       },
-  //       {
-  //         name: 'Rent',
-  //         type: TransactionType.EXPENSE,
-  //         color: '#FFA500',
-  //         is_default: true,
-  //       },
-  //       {
-  //         name: 'Utilities',
-  //         type: TransactionType.EXPENSE,
-  //         color: '#008000',
-  //         is_default: true,
-  //       },
-  //       {
-  //         name: 'Entertainment',
-  //         type: TransactionType.EXPENSE,
-  //         color: '#0000FF',
-  
-  //         is_default: true,
-  //       },
-  //       {
-  //         name: 'Salary',
-  //         type: TransactionType.INCOME,
-  //         color: '#800080',
-  //         is_default: true,
-  //       },
-  //     ];
+      const result = await this.categoryRepository.findOne({
+        where: { id: savedCategory.id },
+      });
 
-  //     for (const cat of defaultCategories) {
-  //       const exists = await this.categoryRepository.findOne({
-  //         where: { name: cat.name, user: cat.id },
-  //         select: { id: true, name: true },
-  //       });
-  //       if (!exists) {
-  //         const category = this.categoryRepository.create({
-  //           ...cat,
-  //           user: undefined,
-  //         });
-  //         await this.categoryRepository.save(category);
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.error('Error in CategoryService.initializeDefaultCategories:', {
-  //       message: error.message,
-  //       stack: error.stack,
-  //     });
-  //     throw new InternalServerErrorException(
-  //       `Failed to initialize default categories: ${error.message}`,
-  //     );
-  //   }
-  // }
-  // async onModuleInit() {
-  //   await this.initializeDefaultCategories();
-  // }
+      if (!result) {
+        throw new NotFoundException(
+          `Category with ID ${savedCategory.id} not found after update`,
+        );
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error in CategoryService.update:', {
+        message: error.message,
+        stack: error.stack,
+        id,
+        user,
+        updateCategoryDto,
+      });
+
+      throw new InternalServerErrorException(
+        `Failed to update category: ${error.message}`,
+      );
+    }
+  }
+
+  //remove a category
+  async remove(
+    id: string,
+    user: CurrentUserPayload,
+  ): Promise<{ message: string }> {
+    try {
+      const category = await this.findOne(id, user);
+      if (!category) {
+        throw new NotFoundException(`Category with ID ${id} not found`);
+      }
+      await this.categoryRepository.softDelete(id);
+      return { message: 'Category deleted successfully' };
+    } catch (error) {
+      console.error('Error in CategoryService.remove:', {
+        message: error.message,
+        stack: error.stack,
+        id,
+        user,
+      });
+      throw new InternalServerErrorException(
+        `Failed to delete category: ${error.message}`,
+      );
+    }
+  }
+
+
+//seed default categories on registration
+  async initializeDefaultCategoriesForUser(user: User): Promise<void> {
+    try {
+      const defaultCategories: Partial<Category>[] = [
+        {
+          name: 'Food',
+          type: TransactionType.EXPENSE,
+          color: '#FF0000',
+        },
+        {
+          name: 'Rent',
+          type: TransactionType.EXPENSE,
+          color: '#FFA500',
+        },
+        {
+          name: 'Utilities',
+          type: TransactionType.EXPENSE,
+          color: '#008000',
+        },
+        {
+          name: 'Entertainment',
+          type: TransactionType.EXPENSE,
+          color: '#0000FF',
+        },
+        {
+          name: 'Salary',
+          type: TransactionType.INCOME,
+          color: '#800080',
+        },
+      ];
+
+      for (const cat of defaultCategories) {
+        const existing = await this.categoryRepository.findOne({
+          where: { name: cat.name, user: { id: user.id } },
+          withDeleted: true,
+        });
+
+        if (existing) {
+          if (existing.deleted_at) {
+            // recover soft-deleted
+            await this.categoryRepository.recover(existing);
+          }
+          continue; // skip creation if already exists (active or soft-deleted)
+        }
+
+        const newCategory = this.categoryRepository.create({
+          ...cat,
+          is_default: true,
+          user,
+        });
+
+        await this.categoryRepository.save(newCategory);
+      }
+    } catch (error) {
+      console.error('Error in initializeDefaultCategoriesForUser:', {
+        message: error.message,
+        stack: error.stack,
+        userId: user.id,
+      });
+      throw new InternalServerErrorException(
+        `Failed to initialize default categories for user ${user.id}: ${error.message}`,
+      );
+    }
+  }
 }

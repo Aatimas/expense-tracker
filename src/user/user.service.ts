@@ -10,12 +10,18 @@ import { User } from './entities/user.entity';
 import { plainToInstance } from 'class-transformer';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto';
 import * as bcrypt from 'bcrypt';
+import { CategoryService } from 'src/category/category.service';
+import { Category } from 'src/category/entities/category.entity';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) // Injects the User repository for database interactions.
-    private userRepository: Repository<User>, //instantiates the Repository from typeORM
+    private userRepository: Repository<User>,
+    @InjectRepository(Category)
+    private categoryRepository: Repository<Category>,
+    //instantiates the Repository from typeORM
+    private categoryService: CategoryService,
   ) {}
 
   // Hash password using bcrypt
@@ -28,7 +34,7 @@ export class UserService {
   async findUserByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({
       where: { email },
-      withDeleted: true,    //allows finding soft deleted users
+      withDeleted: true, //allows finding soft deleted users
     });
   }
 
@@ -40,7 +46,9 @@ export class UserService {
         ...createUserDto,
         password: hashedPassword,
       });
-      return await this.userRepository.save(user);
+      const savedUser = await this.userRepository.save(user);
+      await this.categoryService.initializeDefaultCategoriesForUser(user);
+      return savedUser;
     } catch (error) {
       if (
         error instanceof QueryFailedError &&
@@ -124,13 +132,22 @@ export class UserService {
   }
 
   //delete a user
-  async softDelete(id: string): Promise<void> {
-    const result = await this.userRepository.softDelete(id);
+  // user.service.ts
 
-    if (result.affected === 0) {
-      throw new NotFoundException(
-        `User with ID ${id} not found or already deleted`,
-      );
+  async softDelete(userId: string): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['categories'], // load related categories
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
+
+    // Soft delete related categories first
+    await this.categoryRepository.softDelete({ user: { id: userId } });
+
+    // Then soft delete the user
+    await this.userRepository.softDelete(userId);
   }
 }

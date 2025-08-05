@@ -17,6 +17,8 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { Category } from './entities/category.entity';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import { CurrentUserPayload } from 'src/common/interface/current-user.interface';
 
 @Controller('categories')
 @UseGuards(AuthGuard('jwt'))
@@ -27,38 +29,38 @@ export class CategoryController {
   @Post()
   create(
     @Body() createCategoryDto: CreateCategoryDto,
-    @Request() request,
-  ): Promise<Category> {
-    return this.categoryService.create(createCategoryDto, request.user);
+    @CurrentUser() user: CurrentUserPayload, // full payload from token
+  ) {
+    return this.categoryService.create(createCategoryDto, user);
   }
 
-  // @Get()
-  // findAll(@Request() request): Promise<Category[]> {
-  //   return this.categoryService.findAll(request.user);
-  // }
+  @Get()
+  findAll(@CurrentUser() user: CurrentUserPayload): Promise<Category[]> {
+    return this.categoryService.findAll(user);
+  }
 
-  // @Get(':id')
-  // findOne(
-  //   @Param('id', new ParseUUIDPipe()) id: string,
-  //   @Request() request,
-  // ): Promise<Category> {
-  //   return this.categoryService.findOne(id, request.user);
-  // }
+  @Get(':id')
+  findOne(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ): Promise<Category> {
+    return this.categoryService.findOne(id, user);
+  }
 
-  // @Patch(':id')
-  // update(
-  //   @Param('id', new ParseUUIDPipe()) id: string,
-  //   @Body() updateCategoryDto: UpdateCategoryDto,
-  //   @Request() request,
-  // ): Promise<Category> {
-  //   return this.categoryService.update(id, updateCategoryDto, request.user);
-  // }
+  @Patch(':id')
+  update(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() updateCategoryDto: UpdateCategoryDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ): Promise<Category> {
+    return this.categoryService.update(id, updateCategoryDto, user);
+  }
 
-  // @Delete(':id')
-  // remove(
-  //   @Param('id', new ParseUUIDPipe()) id: string,
-  //   @Request() request,
-  // ): Promise<{ message: string }> {
-  //   return this.categoryService.remove(id, request.user);
-  // }
+  @Delete(':id')
+  remove(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ): Promise<{ message: string }> {
+    return this.categoryService.remove(id, user);
+  }
 }
