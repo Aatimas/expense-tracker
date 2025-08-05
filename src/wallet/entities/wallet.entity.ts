@@ -15,6 +15,7 @@ export enum WalletType {
   WALLET = 'wallet',
   BANK = 'bank',
   CASH = 'cash',
+  CARD = 'card',
 }
 
 @Entity('wallets')
