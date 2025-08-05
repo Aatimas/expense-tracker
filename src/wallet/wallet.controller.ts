@@ -46,12 +46,19 @@ export class WalletController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateWalletDto: UpdateWalletDto) {
-    return this.walletService.update(+id, updateWalletDto);
+  update(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() updateWalletDto: UpdateWalletDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ): Promise<Wallet> {
+    return this.walletService.update(id, updateWalletDto, user);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.walletService.remove(+id);
+  remove(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ): Promise<{ message: string }> {
+    return this.walletService.remove(id, user);
   }
 }

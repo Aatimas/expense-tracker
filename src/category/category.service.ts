@@ -136,12 +136,11 @@ export class CategoryService {
         category.user &&
         category.user.id !== user.userId //only the user can access private categories
       ) {
-        return category;
+        throw new ForbiddenException(
+          'You do not have permission to access this category',
+        );
       }
-
-      throw new ForbiddenException(
-        'You do not have permission to access this category',
-      );
+      return category;
     } catch (error) {
       console.error('Error in CategoryService.findOne:', {
         message: error.message,

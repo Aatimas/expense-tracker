@@ -134,8 +134,6 @@ export class WalletService {
         );
       }
       return wallet;
-
-     
     } catch (error) {
       console.error('Error in WalletService.findOne:', {
         message: error.message,
@@ -149,11 +147,89 @@ export class WalletService {
     }
   }
 
-  update(id: number, updateWalletDto: UpdateWalletDto) {
-    return `This action updates a #${id} wallet`;
+  async update(
+    id: string,
+    updateWalletDto: UpdateWalletDto,
+    user: CurrentUserPayload,
+  ): Promise<Wallet> {
+    try {
+      const wallet = await this.findOne(id, user); // Get existing wallet
+
+      if (updateWalletDto.name && updateWalletDto.name !== wallet.name) {
+        // Check if a wallet (active or deleted) with the new name exists
+        const existingWithDeleted = await this.walletRepository.findOne({
+          where: {
+            name: updateWalletDto.name,
+            user: { id: user.userId },
+          },
+          withDeleted: true, // includes soft-deleted records
+        });
+
+        if (existingWithDeleted) {
+          if (!existingWithDeleted.deleted_at) {
+            // Active wallet with the same name already exists
+            throw new ConflictException(
+              'Wallet name already exists for this scope',
+            );
+          } else if (existingWithDeleted.id !== id) {
+            // Soft-deleted wallet with the same name exists — restore it or error
+            await this.walletRepository.recover(existingWithDeleted);
+            return existingWithDeleted;
+          }
+        }
+      }
+
+      Object.assign(wallet, updateWalletDto);
+      const savedWallet = await this.walletRepository.save(wallet);
+
+      const result = await this.walletRepository.findOne({
+        where: { id: savedWallet.id },
+      });
+
+      if (!result) {
+        throw new NotFoundException(
+          `Wallet with ID ${savedWallet.id} not found after update`,
+        );
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error in WalletService.update:', {
+        message: error.message,
+        stack: error.stack,
+        id,
+        user,
+        updateWalletDto,
+      });
+
+      throw new InternalServerErrorException(
+        `Failed to update wallet: ${error.message}`,
+      );
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} wallet`;
+  //remove a wallet
+  async remove(
+    id: string,
+    user: CurrentUserPayload,
+  ): Promise<{ message: string }> {
+    try {
+      const wallet = await this.findOne(id, user);
+      if (!wallet) {
+        throw new NotFoundException(`Wallet with ID ${id} not found`);
+      }
+      await this.walletRepository.softDelete(id);
+      return { message: 'Wallet deleted successfully' };
+    } catch (error) {
+      console.error('Error in WalletService.remove:', {
+        message: error.message,
+        stack: error.stack,
+        id,
+        user,
+      });
+      throw new InternalServerErrorException(
+        `Failed to delete wallet: ${error.message}`,
+      );
+    }
   }
 }
