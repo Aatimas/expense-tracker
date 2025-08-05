@@ -66,7 +66,7 @@ export class UserService {
   }): Promise<UserResponseDto[]> {
     let users: User[];
 
-    if (user.email === 'admin@gmail.com') {
+    if (user.email === 'admin@gmail.com') { //hardcoded for testing purpose in postman
       // Admin gets all users
       users = await this.userRepository.find({
         where: { deleted_at: IsNull() },
