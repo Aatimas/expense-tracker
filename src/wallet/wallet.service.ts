@@ -22,17 +22,6 @@ export class WalletService {
     private userRepository: Repository<User>,
   ) { }
 
-  private async isWalletNameTaken(
-    name: string,
-    userId: string,
-    excludeId?: string,
-  ): Promise<boolean> {
-    const existing = await this.walletRepository.findOne({
-      where: { name, user: { id: userId } },
-    });
-
-    return !!existing && existing.id !== excludeId;
-  }
   async create(
     createWalletDto: CreateWalletDto,
     user: CurrentUserPayload, //get user from payload

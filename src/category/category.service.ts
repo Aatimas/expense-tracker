@@ -24,17 +24,7 @@ export class CategoryService {
     private userRepository: Repository<User>,
   ) {}
 
-  private async isCategoryNameTaken(
-    name: string,
-    userId: string,
-    excludeId?: string,
-  ): Promise<boolean> {
-    const existing = await this.categoryRepository.findOne({
-      where: { name, user: { id: userId } },
-    });
 
-    return !!existing && existing.id !== excludeId;
-  }
   // create a new category
   async create(
     createCategoryDto: CreateCategoryDto,

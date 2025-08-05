@@ -15,7 +15,4 @@ export class CreateWalletDto {
   @IsOptional()
   balance?: number = 0;
 
-  @IsBoolean()
-  @IsOptional()
-  is_default?: boolean = false;
 }
