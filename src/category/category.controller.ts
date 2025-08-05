@@ -32,33 +32,33 @@ export class CategoryController {
     return this.categoryService.create(createCategoryDto, request.user);
   }
 
-  @Get()
-  findAll(@Request() request): Promise<Category[]> {
-    return this.categoryService.findAll(request.user);
-  }
+  // @Get()
+  // findAll(@Request() request): Promise<Category[]> {
+  //   return this.categoryService.findAll(request.user);
+  // }
 
-  @Get(':id')
-  findOne(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Request() request,
-  ): Promise<Category> {
-    return this.categoryService.findOne(id, request.user);
-  }
+  // @Get(':id')
+  // findOne(
+  //   @Param('id', new ParseUUIDPipe()) id: string,
+  //   @Request() request,
+  // ): Promise<Category> {
+  //   return this.categoryService.findOne(id, request.user);
+  // }
 
-  @Patch(':id')
-  update(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() updateCategoryDto: UpdateCategoryDto,
-    @Request() request,
-  ): Promise<Category> {
-    return this.categoryService.update(id, updateCategoryDto, request.user);
-  }
+  // @Patch(':id')
+  // update(
+  //   @Param('id', new ParseUUIDPipe()) id: string,
+  //   @Body() updateCategoryDto: UpdateCategoryDto,
+  //   @Request() request,
+  // ): Promise<Category> {
+  //   return this.categoryService.update(id, updateCategoryDto, request.user);
+  // }
 
-  @Delete(':id')
-  remove(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Request() request,
-  ): Promise<{ message: string }> {
-    return this.categoryService.remove(id, request.user);
-  }
+  // @Delete(':id')
+  // remove(
+  //   @Param('id', new ParseUUIDPipe()) id: string,
+  //   @Request() request,
+  // ): Promise<{ message: string }> {
+  //   return this.categoryService.remove(id, request.user);
+  // }
 }

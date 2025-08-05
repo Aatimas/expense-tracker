@@ -23,7 +23,7 @@ export class Category {
   @Expose()
   id: string;
 
-  @ManyToOne(() => User, { nullable: true, onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @Exclude()
   user?: User;
 
@@ -52,5 +52,6 @@ export class Category {
   updated_at: Date;
 
   @DeleteDateColumn({ type: 'timestamptz' })
+  @Exclude()
   deleted_at?: Date;
 }
