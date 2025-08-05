@@ -10,7 +10,7 @@ import { UpdateWalletDto } from './dto/update-wallet.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
-import { Wallet } from './entities/wallet.entity';
+import { Wallet, WalletType } from './entities/wallet.entity';
 import { CurrentUserPayload } from 'src/common/interface/current-user.interface';
 
 @Injectable()
@@ -20,7 +20,7 @@ export class WalletService {
     private walletRepository: Repository<Wallet>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
-  ) {}
+  ) { }
 
   private async isWalletNameTaken(
     name: string,
@@ -231,5 +231,23 @@ export class WalletService {
         `Failed to delete wallet: ${error.message}`,
       );
     }
+  }
+
+
+
+  //default wallet
+  async createDefaultWallet(userId: string): Promise<Wallet> {
+    const user = await this.userRepository.findOne({ where: { id: userId } , });
+    if (!user) throw new NotFoundException('User not found');
+
+    const wallet = this.walletRepository.create({
+      name: 'Default Wallet',
+      type: WalletType.WALLET,
+      balance: 0,
+      is_default: true,
+      user,
+    });
+
+    return this.walletRepository.save(wallet);
   }
 }

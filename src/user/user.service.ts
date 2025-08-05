@@ -12,6 +12,8 @@ import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto';
 import * as bcrypt from 'bcrypt';
 import { CategoryService } from 'src/category/category.service';
 import { Category } from 'src/category/entities/category.entity';
+import { Wallet } from 'src/wallet/entities/wallet.entity';
+import { WalletService } from 'src/wallet/wallet.service';
 
 @Injectable()
 export class UserService {
@@ -20,8 +22,11 @@ export class UserService {
     private userRepository: Repository<User>,
     @InjectRepository(Category)
     private categoryRepository: Repository<Category>,
+    @InjectRepository(Wallet)
+    private walletRepository: Repository<Wallet>,
     //instantiates the Repository from typeORM
     private categoryService: CategoryService,
+    private walletService: WalletService,
   ) {}
 
   // Hash password using bcrypt
@@ -47,7 +52,8 @@ export class UserService {
         password: hashedPassword,
       });
       const savedUser = await this.userRepository.save(user);
-      await this.categoryService.initializeDefaultCategoriesForUser(user);
+      await this.categoryService.initializeDefaultCategories(user);
+      await this.walletService.createDefaultWallet(savedUser.id);
       return savedUser;
     } catch (error) {
       if (
@@ -66,7 +72,8 @@ export class UserService {
   }): Promise<UserResponseDto[]> {
     let users: User[];
 
-    if (user.email === 'admin@gmail.com') { //hardcoded for testing purpose in postman
+    if (user.email === 'admin@gmail.com') {
+      //hardcoded for testing purpose in postman
       // Admin gets all users
       users = await this.userRepository.find({
         where: { deleted_at: IsNull() },
@@ -149,8 +156,9 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
 
-    // Soft delete related categories first
+    // Soft delete related categories and wallets first
     await this.categoryRepository.softDelete({ user: { id: userId } });
+    await this.walletRepository.softDelete({ user: { id: userId } });
 
     // Then soft delete the user
     await this.userRepository.softDelete(userId);

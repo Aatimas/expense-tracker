@@ -242,7 +242,7 @@ export class CategoryService {
   }
 
   //seed default categories on registration
-  async initializeDefaultCategoriesForUser(user: User): Promise<void> {
+  async initializeDefaultCategories(user: User): Promise<void> {
     try {
       const defaultCategories: Partial<Category>[] = [
         {
