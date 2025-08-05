@@ -28,7 +28,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: { sub: string }) {
+  async validate(payload: any) {
     const user = await this.userRepository.findOne({
       where: {
         id: payload.sub,
@@ -40,6 +40,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User not found or deleted');
     }
 
-    return user;
+    return { userId: payload.sub, name:payload.name, email: payload.email };
   }
 }
