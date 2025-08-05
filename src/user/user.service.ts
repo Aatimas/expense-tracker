@@ -28,7 +28,7 @@ export class UserService {
   async findUserByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({
       where: { email },
-      withDeleted: true,
+      withDeleted: true,    //allows finding soft deleted users
     });
   }
 
