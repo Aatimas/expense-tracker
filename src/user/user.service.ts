@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { IsNull, QueryFailedError, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { plainToInstance } from 'class-transformer';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto';
@@ -68,11 +68,13 @@ export class UserService {
 
     if (user.email === 'admin@gmail.com') {
       // Admin gets all users
-      users = await this.userRepository.find();
+      users = await this.userRepository.find({
+        where: { deleted_at: IsNull() },
+      });
     } else {
       // Normal user gets only their own data
       const singleUser = await this.userRepository.findOne({
-        where: { id: user.userId },
+        where: { id: user.userId, deleted_at: IsNull() },
       });
 
       if (!singleUser) {
@@ -89,7 +91,10 @@ export class UserService {
 
   //Retrieve single user by id
   async findById(id: string): Promise<UserResponseDto> {
-    const user = await this.userRepository.findOne({ where: { id } });
+    const user = await this.userRepository.findOne({
+      where: { id },
+      withDeleted: false,
+    });
     if (!user) {
       throw new NotFoundException(`User with id ${id} not found`);
     }

@@ -16,7 +16,7 @@ export class AuthService {
   async validateUser(email: string, password: string): Promise<User | null> {
     const user = await this.userService.findUserByEmail(email);
 
-    if (!user) return null; // 🛡️ Check for missing user first
+    if (!user || user.deleted_at) return null; // 🛡️ Check for missing user first
 
     const isMatch = await compare(password, user.password);
     if (!isMatch) return null;
@@ -28,7 +28,7 @@ export class AuthService {
   async register(dto: CreateUserDto) {
     const existingUser = await this.userService.findUserByEmail(dto.email);
     if (existingUser) {
-      throw new ConflictException('Email already exists');
+      throw new ConflictException('Registration failed. Please try again.');
     }
     return this.userService.createUser(dto);
   }
