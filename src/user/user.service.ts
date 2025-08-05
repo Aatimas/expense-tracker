@@ -14,6 +14,7 @@ import { CategoryService } from 'src/category/category.service';
 import { Category } from 'src/category/entities/category.entity';
 import { Wallet } from 'src/wallet/entities/wallet.entity';
 import { WalletService } from 'src/wallet/wallet.service';
+import { CurrentUserPayload } from 'src/common/interface/current-user.interface';
 
 @Injectable()
 export class UserService {
@@ -66,10 +67,7 @@ export class UserService {
     }
   }
   //Finds and returns all users
-  async findAll(user: {
-    userId: string;
-    email: string;
-  }): Promise<UserResponseDto[]> {
+  async findAll(user: CurrentUserPayload): Promise<UserResponseDto[]> {
     let users: User[];
 
     if (user.email === 'admin@gmail.com') {
@@ -96,19 +94,18 @@ export class UserService {
     });
   }
 
-  //Retrieve single user by id
-  async findById(id: string): Promise<UserResponseDto> {
-    const user = await this.userRepository.findOne({
-      where: { id },
-      withDeleted: false,
-    });
-    if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
-    }
-    return plainToInstance(UserResponseDto, user, {
-      excludeExtraneousValues: true,
-    });
-  }
+  // //Retrieve single user by id
+  // async findById(userId: string): Promise<UserResponseDto> {
+  //   const user = await this.userRepository.findOne({
+  //      where: { id: userId, deleted_at: IsNull() }
+  //   });
+  //   if (!user) {
+  //     throw new NotFoundException(`User with id ${userId} not found`);
+  //   }
+  //   return plainToInstance(UserResponseDto, user, {
+  //     excludeExtraneousValues: true,
+  //   });
+  // }
 
   //update user by id
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {

@@ -25,12 +25,12 @@ export class AuthService {
   }
 
   //register a user
-  async register(dto: CreateUserDto) {
-    const existingUser = await this.userService.findUserByEmail(dto.email);
+  async register(createUserDto: CreateUserDto) {
+    const existingUser = await this.userService.findUserByEmail(createUserDto.email);
     if (existingUser) {
       throw new ConflictException('Registration failed. Please try again.');
     }
-    return this.userService.createUser(dto);
+    return this.userService.createUser(createUserDto);
   }
 
   //handles login and token generation
